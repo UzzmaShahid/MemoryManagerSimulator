@@ -5,7 +5,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QComboBox>
-#include <QTextEdit>
+#include <QLineEdit>
 #include <QTimer>
 #include <vector>
 #include "MemoryManager.h"
@@ -33,7 +33,7 @@ private:
     QLabel* replacementsLabel;
     QLabel* messageLabel;
     QLabel* progressLabel;
-    QTextEdit* patternDisplay;
+    QLineEdit* patternInput;
     QPushButton* stepButton;
     QPushButton* runButton;
     QPushButton* resetButton;
@@ -43,6 +43,7 @@ private:
     void updateVisualization();
     void performStep();
     void loadAccessPattern();
+    void parseAndLoadPattern();
 
 private slots:
     void onStepClicked();

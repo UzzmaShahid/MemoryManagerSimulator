@@ -4,6 +4,9 @@
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QFont>
+#include <QLineEdit>
+#include <QMessageBox>
+#include <QRegExp>
 #include <sstream>
 
 MainWindow::MainWindow(QWidget* parent)
@@ -22,12 +25,13 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::loadAccessPattern() {
-    accessPattern = {0, 1, 2, 3, 0, 1, 4, 0, 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 0};
+    // Default pattern
+    accessPattern = {0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 6, 7, 0, 1, 2, 3, 8, 9, 0, 1, 2, 3};
 }
 
 void MainWindow::setupUI() {
     setWindowTitle("Memory Manager Simulator");
-    resize(1000, 700);
+    resize(1000, 750);
     
     QWidget* central = new QWidget(this);
     QVBoxLayout* mainLayout = new QVBoxLayout(central);
@@ -76,7 +80,7 @@ void MainWindow::setupUI() {
     messageLabel->setWordWrap(true);
     mainLayout->addWidget(messageLabel);
     
-    progressLabel = new QLabel("Progress: 0/20");
+    progressLabel = new QLabel("Progress: 0/26");
     progressLabel->setStyleSheet("color: #666; font-size: 12px;");
     mainLayout->addWidget(progressLabel);
     
@@ -140,21 +144,87 @@ void MainWindow::setupUI() {
     controlGroup->setLayout(controlLayout);
     mainLayout->addWidget(controlGroup);
     
-    // Access Pattern Display
-    patternDisplay = new QTextEdit();
-    patternDisplay->setReadOnly(true);
-    patternDisplay->setMaximumHeight(80);
+    // Access Pattern Input Section
+    QGroupBox* patternGroup = new QGroupBox("Access Pattern (Enter page numbers 0-9, separated by commas or spaces)");
+    QVBoxLayout* patternLayout = new QVBoxLayout();
     
+    patternInput = new QLineEdit();
+    patternInput->setPlaceholderText("Example: 0,1,2,3,0,1,4 or 0 1 2 3 0 1 4");
+    patternInput->setMinimumHeight(35);
+    
+    // Set default pattern in the input box
     std::ostringstream pattern;
-    pattern << "Access Pattern: ";
     for (size_t i = 0; i < accessPattern.size(); i++) {
-        pattern << "P" << accessPattern[i];
+        pattern << accessPattern[i];
         if (i < accessPattern.size() - 1) pattern << ", ";
     }
-    patternDisplay->setText(QString::fromStdString(pattern.str()));
-    mainLayout->addWidget(patternDisplay);
+    patternInput->setText(QString::fromStdString(pattern.str()));
+    
+    QPushButton* loadPatternButton = new QPushButton("Load Pattern");
+    loadPatternButton->setMinimumHeight(35);
+    loadPatternButton->setStyleSheet("QPushButton { background: #4299e1; color: white; font-weight: bold; }");
+    connect(loadPatternButton, &QPushButton::clicked, this, [this]() {
+        parseAndLoadPattern();
+    });
+    
+    patternLayout->addWidget(patternInput);
+    patternLayout->addWidget(loadPatternButton);
+    patternGroup->setLayout(patternLayout);
+    mainLayout->addWidget(patternGroup);
     
     setCentralWidget(central);
+}
+
+void MainWindow::parseAndLoadPattern() {
+    // Don't allow changing pattern during simulation
+    if (memoryManager->getStatistics().totalAccesses > 0) {
+        QMessageBox::warning(this, "Pattern Locked", 
+                           "Please reset the simulation before loading a new pattern.");
+        return;
+    }
+    
+    QString input = patternInput->text().trimmed();
+    if (input.isEmpty()) {
+        QMessageBox::warning(this, "Empty Pattern", "Please enter a valid access pattern.");
+        return;
+    }
+    
+    // Parse the input (supports both comma and space separated)
+    QString normalized = input;
+    normalized.replace(",", " ");  // Replace commas with spaces
+    normalized.replace("P", "");   // Remove P prefix if user typed it
+    normalized.replace("p", "");   // Remove lowercase p too
+    
+    QStringList tokens = normalized.split(QRegExp("\\s+"), Qt::SkipEmptyParts);
+    
+    std::vector<int> newPattern;
+    bool validInput = true;
+    
+    for (const QString& token : tokens) {
+        bool ok;
+        int pageNum = token.toInt(&ok);
+        
+        if (!ok || pageNum < 0 || pageNum > 9) {
+            QMessageBox::critical(this, "Invalid Input", 
+                                QString("Invalid page number: %1\nPage numbers must be between 0 and 9.").arg(token));
+            validInput = false;
+            break;
+        }
+        newPattern.push_back(pageNum);
+    }
+    
+    if (validInput && !newPattern.empty()) {
+        accessPattern = newPattern;
+        currentAccessIndex = 0;
+        
+        // Update progress label
+        progressLabel->setText(QString("Progress: 0/%1").arg(accessPattern.size()));
+        
+        QMessageBox::information(this, "Pattern Loaded", 
+                               QString("Successfully loaded pattern with %1 accesses.").arg(newPattern.size()));
+    } else if (newPattern.empty()) {
+        QMessageBox::warning(this, "Empty Pattern", "No valid page numbers found.");
+    }
 }
 
 void MainWindow::updateVisualization() {
