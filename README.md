@@ -8,6 +8,14 @@ A visual simulation of operating system memory management with page replacement 
 - Page table display
 - Statistics tracking (hit rate, page faults, replacements)
 - Step-by-step or automatic execution
+<img width="440" height="423" alt="image" src="https://github.com/user-attachments/assets/50418cb3-4e5a-4ac6-b3cf-1884d29748a5" />
+
+### FIFO
+<img width="439" height="425" alt="image" src="https://github.com/user-attachments/assets/582ca0d1-d555-428a-9afa-f989f5377f7e" />
+
+### LRU
+<img width="439" height="423" alt="image" src="https://github.com/user-attachments/assets/691df235-7461-487c-afef-c51fca756129" />
+
 
 ## Build Instructions
 
